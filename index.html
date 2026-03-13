@@ -1,13 +1,13 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Contours of Conquest</title>
+    <title>Earth Twin</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Manrope:wght@400;500;600;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;700&family=Space+Grotesk:wght@400;500;700&display=swap"
       rel="stylesheet"
     />
     <link
@@ -15,163 +15,124 @@
       href="https://unpkg.com/maplibre-gl@5.19.0/dist/maplibre-gl.css"
     />
     <link rel="stylesheet" href="./styles.css" />
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js",
+          "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/"
+        }
+      }
+    </script>
     <script src="https://unpkg.com/maplibre-gl@5.19.0/dist/maplibre-gl.js"></script>
   </head>
-  <body data-mode="compare">
-    <div class="ambient ambient-1" aria-hidden="true"></div>
-    <div class="ambient ambient-2" aria-hidden="true"></div>
-    <div class="ambient ambient-grid" aria-hidden="true"></div>
-
+  <body data-view="orbital">
     <div class="app-shell">
-      <aside class="control-panel">
-        <div class="hero-block">
-          <p class="eyebrow">Historical Atlas Board</p>
-          <h1>Contours of Conquest</h1>
-          <p class="lede">
-            Scrub across the medieval centuries to see how Mongol power widened, how Chinese
-            imperial space shifted from Song to Yuan to Ming, and where the two stories collided.
-          </p>
+      <div id="globe-stage" class="stage"></div>
+      <div id="map-stage" class="stage stage-map" aria-label="Surface view"></div>
+
+      <div id="loading-screen" class="loading-screen" role="status" aria-live="polite">
+        <span class="loading-label">Loading Earth textures</span>
+        <span id="loading-copy" class="loading-copy">Preparing orbital assets...</span>
+      </div>
+
+      <aside class="hud-panel">
+        <p class="kicker">Planetary Twin</p>
+        <h1>Earth Twin</h1>
+        <p class="lede">
+          Scroll from orbit to terrain. Keep the region you want centered, then keep zooming to
+          hand off into street-scale map mode.
+        </p>
+
+        <div class="status-row">
+          <span id="view-label" class="status-pill">Orbital view</span>
+          <span id="focus-label" class="status-pill status-pill-accent">0.00degN 28.00degW</span>
+          <label
+            class="icon-toggle"
+            for="audio-toggle"
+            title="Toggle sound effects"
+            aria-label="Toggle sound effects"
+          >
+            <input id="audio-toggle" type="checkbox" checked />
+            <span class="icon-toggle-mark" aria-hidden="true"></span>
+            <span class="icon-toggle-slash" aria-hidden="true"></span>
+          </label>
         </div>
 
-        <section class="panel-card mode-card">
+        <form id="search-form" class="search-form">
+          <label class="search-label" for="city-search">Search city</label>
+          <div class="search-row">
+            <input
+              id="city-search"
+              class="search-input"
+              type="search"
+              name="city"
+              placeholder="Enter city name"
+              autocomplete="off"
+              spellcheck="false"
+            />
+            <button class="search-button" type="submit">Go</button>
+          </div>
+        </form>
+
+        <section class="control-block orbital-controls">
           <div class="section-head">
-            <h2>Lens</h2>
-            <span id="mode-caption">Compare both imperial stories</span>
+            <h2>Orbital layers</h2>
+            <span>Available in space view</span>
           </div>
 
-          <div class="mode-switch" role="tablist" aria-label="Map comparison lens">
-            <button class="mode-button is-active" data-mode="compare" type="button">Compare</button>
-            <button class="mode-button" data-mode="mongol" type="button">Mongol Empire</button>
-            <button class="mode-button" data-mode="china" type="button">Chinese Empire</button>
-          </div>
+          <label class="toggle-row" for="cloud-toggle">
+            <span>
+              <strong>Dynamic clouds</strong>
+              <small>Rotating cloud shell from public Earth texture layers.</small>
+            </span>
+            <input id="cloud-toggle" type="checkbox" checked />
+          </label>
+
+          <label class="toggle-row" for="atmosphere-toggle">
+            <span>
+              <strong>Atmosphere glow</strong>
+              <small>Fresnel-style atmospheric scattering around the limb.</small>
+            </span>
+            <input id="atmosphere-toggle" type="checkbox" checked />
+          </label>
+
+          <label class="toggle-row" for="night-toggle">
+            <span>
+              <strong>Night mode</strong>
+              <small>Dark-side imagery with city lights in major population centers.</small>
+            </span>
+            <input id="night-toggle" type="checkbox" />
+          </label>
         </section>
 
-        <section class="panel-card timeline-card">
+        <section class="control-block">
           <div class="section-head">
-            <h2>Year Explorer</h2>
-            <button id="play-toggle" class="ghost-button" type="button" aria-pressed="false">
-              Play
-            </button>
+            <h2>Preset cities</h2>
+            <span>Fast ways to test the descent</span>
           </div>
 
-          <div class="timeline-readout">
-            <div>
-              <p class="micro-label">Selected year</p>
-              <strong id="selected-year" class="year-mark">1200</strong>
-            </div>
-            <div class="timeline-copy">
-              <p class="micro-label">Confidence</p>
-              <span id="certainty-chip" class="certainty-chip">Interpolated interval</span>
-            </div>
+          <div id="city-grid" class="city-grid">
+            <button class="city-chip" data-city="new-york" type="button">New York</button>
+            <button class="city-chip" data-city="tokyo" type="button">Tokyo</button>
+            <button class="city-chip" data-city="paris" type="button">Paris</button>
+            <button class="city-chip" data-city="dubai" type="button">Dubai</button>
+            <button class="city-chip" data-city="rio" type="button">Rio</button>
+            <button class="city-chip" data-city="cape-town" type="button">Cape Town</button>
+            <button class="city-chip" data-city="sofia" type="button">Sofia</button>
+            <button class="city-chip" data-city="plovdiv" type="button">Plovdiv</button>
+            <button class="city-chip" data-city="varna" type="button">Varna</button>
           </div>
-
-          <label class="sr-only" for="year-slider">Choose a year</label>
-          <input id="year-slider" class="year-slider" type="range" min="1100" max="1405" step="1" value="1200" />
-          <div id="timeline-ticks" class="tick-row" aria-hidden="true"></div>
-          <div id="anchor-jumps" class="anchor-grid"></div>
-          <p id="uncertainty-copy" class="timeline-note"></p>
-        </section>
-
-        <section class="panel-card legend-card">
-          <div class="section-head">
-            <h2>Reading The Map</h2>
-            <span>Visual rules</span>
-          </div>
-
-          <ul class="legend-list">
-            <li>
-              <span class="legend-swatch legend-swatch-mongol"></span>
-              Mongol imperial footprint or wider khanate sphere
-            </li>
-            <li>
-              <span class="legend-swatch legend-swatch-china"></span>
-              Chinese imperial core for the selected dynasty
-            </li>
-            <li>
-              <span class="legend-swatch legend-swatch-soft"></span>
-              Lighter fill means the border is extrapolated between source-backed snapshots
-            </li>
-          </ul>
-        </section>
-
-        <section id="compare-panel" class="panel-card compare-card">
-          <div class="section-head">
-            <h2>Compare</h2>
-            <span id="compare-phase">Steppe meets court</span>
-          </div>
-
-          <p id="compare-copy" class="compare-copy"></p>
-
-          <div class="compare-meters">
-            <div class="meter-block">
-              <div class="meter-label-row">
-                <span>Mongol reach</span>
-                <strong id="mongol-area">0</strong>
-              </div>
-              <div class="meter-track">
-                <span id="mongol-meter" class="meter-bar meter-bar-mongol"></span>
-              </div>
-            </div>
-
-            <div class="meter-block">
-              <div class="meter-label-row">
-                <span>Chinese core</span>
-                <strong id="china-area">0</strong>
-              </div>
-              <div class="meter-track">
-                <span id="china-meter" class="meter-bar meter-bar-china"></span>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section class="panel-card source-card">
-          <div class="section-head">
-            <h2>Sources</h2>
-            <button id="source-toggle" class="ghost-button" type="button" aria-expanded="false">
-              Show
-            </button>
-          </div>
-          <p class="source-note">
-            Atlas snapshots are strongest where the year aligns with a cited map or chronology.
-            In-between years stay intentionally softer.
-          </p>
-          <ul id="source-list" class="source-list" hidden></ul>
         </section>
       </aside>
 
-      <main class="board-shell">
-        <section class="map-panel">
-          <div class="map-topbar">
-            <div class="map-stat">
-              <p class="micro-label">Visible layer</p>
-              <strong id="map-view-label">Mongol + Chinese</strong>
-            </div>
-            <div class="map-stat">
-              <p class="micro-label">Historical phase</p>
-              <strong id="phase-label">Song and rising Mongols</strong>
-            </div>
-            <div class="map-controls">
-              <button id="fit-visible" class="ghost-button" type="button">Fit Visible</button>
-              <button id="reset-view" class="ghost-button" type="button">Reset View</button>
-            </div>
-          </div>
-
-          <div id="map" class="map-frame" aria-label="Interactive empire map"></div>
-
-          <div class="map-overlay-copy">
-            <p class="micro-label">Map note</p>
-            <p id="map-note">
-              Click glowing city markers to inspect capitals, conquest hubs, and dynastic pivots.
-            </p>
-          </div>
-        </section>
-
-        <section class="detail-grid">
-          <article id="mongol-card" class="detail-card detail-card-mongol"></article>
-          <article id="china-card" class="detail-card detail-card-china"></article>
-        </section>
-      </main>
+      <section class="info-card">
+        <p class="info-label">Guide</p>
+        <p id="hint-copy" class="info-copy">
+          Drag to orbit. Scroll in until the terrain layer takes over. Scroll back out or use
+          Return to Orbit to climb back into space.
+        </p>
+        <button id="return-orbit" class="return-button" type="button" hidden>Return to orbit</button>
+      </section>
     </div>
 
     <script type="module" src="./app.js"></script>
