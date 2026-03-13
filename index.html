@@ -1,0 +1,179 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Contours of Conquest</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Manrope:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/maplibre-gl@5.19.0/dist/maplibre-gl.css"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+    <script src="https://unpkg.com/maplibre-gl@5.19.0/dist/maplibre-gl.js"></script>
+  </head>
+  <body data-mode="compare">
+    <div class="ambient ambient-1" aria-hidden="true"></div>
+    <div class="ambient ambient-2" aria-hidden="true"></div>
+    <div class="ambient ambient-grid" aria-hidden="true"></div>
+
+    <div class="app-shell">
+      <aside class="control-panel">
+        <div class="hero-block">
+          <p class="eyebrow">Historical Atlas Board</p>
+          <h1>Contours of Conquest</h1>
+          <p class="lede">
+            Scrub across the medieval centuries to see how Mongol power widened, how Chinese
+            imperial space shifted from Song to Yuan to Ming, and where the two stories collided.
+          </p>
+        </div>
+
+        <section class="panel-card mode-card">
+          <div class="section-head">
+            <h2>Lens</h2>
+            <span id="mode-caption">Compare both imperial stories</span>
+          </div>
+
+          <div class="mode-switch" role="tablist" aria-label="Map comparison lens">
+            <button class="mode-button is-active" data-mode="compare" type="button">Compare</button>
+            <button class="mode-button" data-mode="mongol" type="button">Mongol Empire</button>
+            <button class="mode-button" data-mode="china" type="button">Chinese Empire</button>
+          </div>
+        </section>
+
+        <section class="panel-card timeline-card">
+          <div class="section-head">
+            <h2>Year Explorer</h2>
+            <button id="play-toggle" class="ghost-button" type="button" aria-pressed="false">
+              Play
+            </button>
+          </div>
+
+          <div class="timeline-readout">
+            <div>
+              <p class="micro-label">Selected year</p>
+              <strong id="selected-year" class="year-mark">1200</strong>
+            </div>
+            <div class="timeline-copy">
+              <p class="micro-label">Confidence</p>
+              <span id="certainty-chip" class="certainty-chip">Interpolated interval</span>
+            </div>
+          </div>
+
+          <label class="sr-only" for="year-slider">Choose a year</label>
+          <input id="year-slider" class="year-slider" type="range" min="1100" max="1405" step="1" value="1200" />
+          <div id="timeline-ticks" class="tick-row" aria-hidden="true"></div>
+          <div id="anchor-jumps" class="anchor-grid"></div>
+          <p id="uncertainty-copy" class="timeline-note"></p>
+        </section>
+
+        <section class="panel-card legend-card">
+          <div class="section-head">
+            <h2>Reading The Map</h2>
+            <span>Visual rules</span>
+          </div>
+
+          <ul class="legend-list">
+            <li>
+              <span class="legend-swatch legend-swatch-mongol"></span>
+              Mongol imperial footprint or wider khanate sphere
+            </li>
+            <li>
+              <span class="legend-swatch legend-swatch-china"></span>
+              Chinese imperial core for the selected dynasty
+            </li>
+            <li>
+              <span class="legend-swatch legend-swatch-soft"></span>
+              Lighter fill means the border is extrapolated between source-backed snapshots
+            </li>
+          </ul>
+        </section>
+
+        <section id="compare-panel" class="panel-card compare-card">
+          <div class="section-head">
+            <h2>Compare</h2>
+            <span id="compare-phase">Steppe meets court</span>
+          </div>
+
+          <p id="compare-copy" class="compare-copy"></p>
+
+          <div class="compare-meters">
+            <div class="meter-block">
+              <div class="meter-label-row">
+                <span>Mongol reach</span>
+                <strong id="mongol-area">0</strong>
+              </div>
+              <div class="meter-track">
+                <span id="mongol-meter" class="meter-bar meter-bar-mongol"></span>
+              </div>
+            </div>
+
+            <div class="meter-block">
+              <div class="meter-label-row">
+                <span>Chinese core</span>
+                <strong id="china-area">0</strong>
+              </div>
+              <div class="meter-track">
+                <span id="china-meter" class="meter-bar meter-bar-china"></span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel-card source-card">
+          <div class="section-head">
+            <h2>Sources</h2>
+            <button id="source-toggle" class="ghost-button" type="button" aria-expanded="false">
+              Show
+            </button>
+          </div>
+          <p class="source-note">
+            Atlas snapshots are strongest where the year aligns with a cited map or chronology.
+            In-between years stay intentionally softer.
+          </p>
+          <ul id="source-list" class="source-list" hidden></ul>
+        </section>
+      </aside>
+
+      <main class="board-shell">
+        <section class="map-panel">
+          <div class="map-topbar">
+            <div class="map-stat">
+              <p class="micro-label">Visible layer</p>
+              <strong id="map-view-label">Mongol + Chinese</strong>
+            </div>
+            <div class="map-stat">
+              <p class="micro-label">Historical phase</p>
+              <strong id="phase-label">Song and rising Mongols</strong>
+            </div>
+            <div class="map-controls">
+              <button id="fit-visible" class="ghost-button" type="button">Fit Visible</button>
+              <button id="reset-view" class="ghost-button" type="button">Reset View</button>
+            </div>
+          </div>
+
+          <div id="map" class="map-frame" aria-label="Interactive empire map"></div>
+
+          <div class="map-overlay-copy">
+            <p class="micro-label">Map note</p>
+            <p id="map-note">
+              Click glowing city markers to inspect capitals, conquest hubs, and dynastic pivots.
+            </p>
+          </div>
+        </section>
+
+        <section class="detail-grid">
+          <article id="mongol-card" class="detail-card detail-card-mongol"></article>
+          <article id="china-card" class="detail-card detail-card-china"></article>
+        </section>
+      </main>
+    </div>
+
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>
